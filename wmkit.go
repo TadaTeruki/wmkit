@@ -8,11 +8,17 @@ package wmkit
 */
 import "C"
 
+import (
+	"os"
+)
+
 type Screen struct {
 	connection 	*C.xcb_connection_t
 	xscreen		*C.xcb_screen_t
 	pAreas		[]*PlainArea
 	dAreas		[]*DrawArea
+	logFile   	*os.File
+	eventQueue	*EventQueue
 }
 
 type XYWH struct {
@@ -22,6 +28,7 @@ type XYWH struct {
 func (sc *Screen) Connect() {
 	sc.connection	= C.xcb_connect(nil, nil)
 	sc.xscreen		= C.xcb_setup_roots_iterator(C.xcb_get_setup(sc.connection)).data
+	sc.eventQueue 	= nil
 }
 
 func (sc *Screen) Disconnect() {

@@ -5,13 +5,28 @@ package wmkit
 #include <xcb/xcb.h>
 #include <cairo.h>
 #include <cairo-xcb.h>
+#include <stdlib.h>
+
+
+void make_window_attributes_value_list(uint32_t* values, size_t size){
+	values = (uint32_t*)malloc(sizeof(uint32_t)*size);
+}
+
+void set_window_attributes_value_list(uint32_t* values, size_t ad, uint32_t value){
+	values[ad] = value;
+}
+
+void free_window_attributes_value_list(uint32_t* values){
+	free(values);
+}
+
 
 */
 import "C"
 
 import(
 	"unsafe"
-	//cairo "github.com/ungerik/go-cairo"
+	cairo "github.com/ungerik/go-cairo"
 )
 
 // === Area === //
@@ -27,16 +42,7 @@ func (sc *Screen) initArea(area Area, xywh XYWH) {
 
 	xwindow := C.xcb_generate_id(sc.connection)
 
-	/*
-	uint32_t             mask = 0;
-	uint32_t             values[2];
-	mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-	values[0] = screen->black_pixel;
-	values[1] = 0;
-	*/
-	//valwin[0] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_BUTTON_PRESS;
-
-	values := []C.uint32_t{ C.XCB_EVENT_MASK_EXPOSURE | C.XCB_EVENT_MASK_BUTTON_PRESS }
+	values := [2]C.uint32_t{ C.uint32_t(1), C.XCB_EVENT_MASK_EXPOSURE | C.XCB_EVENT_MASK_BUTTON_PRESS | C.XCB_EVENT_MASK_BUTTON_RELEASE }
 
 	C.xcb_create_window (sc.connection,
 		C.XCB_COPY_FROM_PARENT,
@@ -44,11 +50,12 @@ func (sc *Screen) initArea(area Area, xywh XYWH) {
 		sc.xscreen.root,
 		C.short(xywh.X),  C.short(xywh.Y),
 		C.ushort(xywh.W), C.ushort(xywh.H),
-		10,
+		0,
 		C.XCB_WINDOW_CLASS_INPUT_OUTPUT,
 		sc.xscreen.root_visual,
-		C.XCB_CW_EVENT_MASK,
+		C.XCB_CW_OVERRIDE_REDIRECT | C.XCB_CW_EVENT_MASK ,
 		unsafe.Pointer(&values[0]))
+	
 	
 	area.setXWindow(xwindow)
 	area.register(sc)
@@ -63,8 +70,6 @@ func (sc *Screen) Destroy(area Area){
 	C.xcb_destroy_window(sc.connection, area.getXWindow())
 	area.destroy()
 }
-
-
 
 // --- PlainArea --- //
 
@@ -125,9 +130,13 @@ func (sc *Screen) NewDrawArea(xywh XYWH) *DrawArea{
 
 	visual_is_found := false
 	var visual_type *C.xcb_visualtype_t
-	
-	for depth_itr := C.xcb_screen_allowed_depths_iterator(sc.xscreen); visual_is_found == false && depth_itr.rem != 0; C.xcb_depth_next(&depth_itr) {
-		for visual_itr := C.xcb_depth_visuals_iterator(depth_itr.data); visual_is_found == false && visual_itr.rem != 0; C.xcb_visualtype_next(&visual_itr) {
+
+
+	depth_itr := C.xcb_screen_allowed_depths_iterator(sc.xscreen)
+	for ; visual_is_found == false && depth_itr.rem != 0; C.xcb_depth_next(&depth_itr) {
+
+		visual_itr := C.xcb_depth_visuals_iterator(depth_itr.data)
+		for ; visual_is_found == false && visual_itr.rem != 0; C.xcb_visualtype_next(&visual_itr) {
             if (sc.xscreen.root_visual == visual_itr.data.visual_id) {
                 visual_type = visual_itr.data
 				visual_is_found = true
@@ -143,3 +152,15 @@ func (sc *Screen) NewDrawArea(xywh XYWH) *DrawArea{
 	return &d_area
 }
 
+func (d_area *DrawArea) getCairoSurface() *cairo.Surface {
+	surface :=
+		cairo.NewSurfaceFromC(
+			cairo.Cairo_surface(unsafe.Pointer(d_area.cairo_surface)),
+			cairo.Cairo_context(unsafe.Pointer(d_area.cairo_context)),
+		)
+	return surface
+}
+
+func (d_area *DrawArea) Draw(f func(*cairo.Surface)){
+	f(d_area.getCairoSurface())
+}
