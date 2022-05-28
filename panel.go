@@ -108,9 +108,7 @@ func (sc *Screen) NewPanel(panelType PanelType, xywh XYWH) *Panel{
 	}
 	default:break
 	}
-
 	
-
 	return panel
 }
 
