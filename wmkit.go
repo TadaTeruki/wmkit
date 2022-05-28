@@ -15,8 +15,7 @@ import (
 type Screen struct {
 	connection 	*C.xcb_connection_t
 	xscreen		*C.xcb_screen_t
-	pAreas		[]*PlainArea
-	dAreas		[]*DrawArea
+	panels		[]Panel
 	logFile   	*os.File
 	eventQueue	*EventQueue
 }
