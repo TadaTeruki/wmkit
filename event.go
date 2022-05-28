@@ -1,10 +1,8 @@
 package wmkit
 
 /*
-#cgo pkg-config: xcb cairo
+#cgo pkg-config: xcb
 #include <xcb/xcb.h>
-#include <cairo.h>
-#include <cairo-xcb.h>
 #include <stdlib.h>
 */
 import "C"
@@ -17,9 +15,9 @@ import (
 type EventType int
 
 const (
-	None				EventType =  0
+	EventType_None		EventType =  0
 	QuitRequest 		EventType = -1
-	QuitNotify  		EventType =  1
+	quitNotify  		EventType =  1
 	ExposeNotify  		EventType =  2
 	ButtonPressNotify 	EventType =  3
 	ButtonReleaseNotify EventType =  4
@@ -28,7 +26,7 @@ const (
 type Event struct {
 	eventType 		EventType
 	target_xwindow	C.xcb_window_t
-	available 		bool
+	request_available 		bool
 	screen			*Screen
 }
 
@@ -51,7 +49,7 @@ func (event *Event) GetPanel() *Panel {
 }
 
 func (event *Event) RejectRequest(){
-	event.available = false
+	event.request_available = false
 }
 
 func (sc *Screen) sendEvent(event *Event) {
@@ -70,40 +68,44 @@ func (sc *Screen) sendEvent(event *Event) {
 func (sc *Screen) RequestQuit() {
 	var event Event
 	event.eventType = QuitRequest
-	event.available = true
+	event.request_available = true
 	event.target_xwindow = 0
 	sc.sendEvent(&event)
 }
 
-func (sc *Screen) Main(mainloop func(event *Event)){
-	for {
-		event := sc.nextEvent()
-		
-		if event.available == false { continue }
-		if event.eventType == QuitNotify { break }
+func (sc *Screen) CatchRequest(event *Event) {
 
-		mainloop(event)
+	if event.eventType == quitNotify { 
+		sc.noevent = true
+		return
+	}
 
-		switch event.eventType {
-			case QuitRequest : {
-				var new_event Event
-				new_event.eventType = QuitNotify
-				new_event.available = true
-				new_event.target_xwindow = 0
-				sc.sendEvent(&new_event)
-			}
-			default: {
-				
-			}
+	if event.request_available == false { return }
+
+	switch event.eventType {
+		case QuitRequest : {
+			var new_event Event
+			new_event.eventType = quitNotify
+			new_event.request_available = false
+			new_event.target_xwindow = 0
+			sc.sendEvent(&new_event)
+		}
+		default: {
+			
 		}
 	}
 }
 
-func (sc *Screen) nextEvent() *Event{
+func (sc *Screen) NextEvent() *Event{
+
+	if sc.noevent == true {
+		return nil
+	}
+
 	var event Event
-	event.available 	 = true
-	event.target_xwindow = 0
-	event.screen		 = sc
+	event.request_available		= false
+	event.target_xwindow 		= 0
+	event.screen		 		= sc
 
 	if sc.eventQueue != nil {
 		event = sc.eventQueue.event
@@ -114,7 +116,7 @@ func (sc *Screen) nextEvent() *Event{
 	generic_event := C.xcb_wait_for_event(sc.connection)
 
 	if generic_event == nil {
-		event.eventType = None
+		event.eventType = EventType_None
 		return &event
 	}
 	
@@ -143,7 +145,7 @@ func (sc *Screen) nextEvent() *Event{
 		}
 
 		default:{
-			event.eventType = None
+			event.eventType = EventType_None
 		}
 
 	}
