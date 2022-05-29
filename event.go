@@ -134,7 +134,9 @@ func (sc *Screen) NextEvent() *Event{
 
 		case C.XCB_BUTTON_RELEASE:{
 			log.Println("wmkit : listen XCB_BUTTON_RELEASE")
+			button_event := (*C.xcb_button_release_event_t)(unsafe.Pointer(generic_event))
 			event.eventType = ButtonReleaseNotify
+			event.target_xwindow = button_event.event
 		}
 
 		case C.XCB_EXPOSE:{

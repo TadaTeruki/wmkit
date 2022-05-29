@@ -172,15 +172,15 @@ func (panel *Panel) GetXYWH() XYWH{
 		return XYWH{0, 0, 0, 0}
 	}
 
-	xywh := XYWH{int(geom.x), int(geom.y), uint(geom.width), uint(geom.height)}
+	xywh := XYWH{uint(geom.x), uint(geom.y), uint(geom.width), uint(geom.height)}
 
 	return xywh
 }
-/*
-func (panel *Panel) Move(){
 
+func (panel *Panel) ApplyXYWH(xywh XYWH){
+	sc := panel.screen
+	values := [4]C.uint32_t{ C.uint(xywh.X), C.uint(xywh.Y), C.uint(xywh.W), C.uint(xywh.H) }
+	C.xcb_configure_window (sc.connection, panel.xwindow,
+		C.XCB_CONFIG_WINDOW_X | C.XCB_CONFIG_WINDOW_Y | C.XCB_CONFIG_WINDOW_WIDTH | C.XCB_CONFIG_WINDOW_HEIGHT, unsafe.Pointer(&values[0]))
 }
-func (panel *Panel) Resize(){
 
-}
-*/

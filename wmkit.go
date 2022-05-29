@@ -20,8 +20,7 @@ type Screen struct {
 }
 
 type XYWH struct {
-	X, Y int
-	W, H uint
+	X, Y, W, H uint
 }
 
 func (sc *Screen) Connect() {
