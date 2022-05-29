@@ -15,12 +15,13 @@ type Screen struct {
 	xscreen		*C.xcb_screen_t
 	panels		[]Panel
 	logFile   	*os.File
-	eventQueue	*EventQueue
+	eventQueue	*eventQueue
 	noevent		bool
 }
 
 type XYWH struct {
-	X, Y, W, H uint
+	X, Y int
+	W, H uint
 }
 
 func (sc *Screen) Connect() {
@@ -32,6 +33,7 @@ func (sc *Screen) Connect() {
 
 func (sc *Screen) Disconnect() {
 	for _, panel := range sc.panels {
+		if panel.xwindow == sc.xscreen.root { continue }
 		panel.internalDestroy()
 	}
 	C.xcb_disconnect(sc.connection)
