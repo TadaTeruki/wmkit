@@ -114,6 +114,7 @@ func (sc *Screen) NextEvent() *Event{
 	}
 
 	generic_event := C.xcb_wait_for_event(sc.connection)
+	defer C.free(unsafe.Pointer(generic_event))
 
 	if generic_event == nil {
 		event.eventType = EventType_None
@@ -150,7 +151,7 @@ func (sc *Screen) NextEvent() *Event{
 
 	}
 	
-	C.free(unsafe.Pointer(generic_event))
+	
 
 	return &event
 

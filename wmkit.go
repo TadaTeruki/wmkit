@@ -20,7 +20,8 @@ type Screen struct {
 }
 
 type XYWH struct {
-	X, Y, W, H int
+	X, Y int
+	W, H uint
 }
 
 func (sc *Screen) Connect() {
@@ -31,9 +32,8 @@ func (sc *Screen) Connect() {
 }
 
 func (sc *Screen) Disconnect() {
-	
 	for _, panel := range sc.panels {
-		sc.Destroy(&panel)
+		panel.internalDestroy()
 	}
 	C.xcb_disconnect(sc.connection)
 }
