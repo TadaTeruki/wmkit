@@ -25,7 +25,9 @@ const(
 )
 
 type panelDrawComponent struct {
-	surface			*cairo.Surface
+	//surface			*cairo.Surface
+	c_surface *C.cairo_surface_t
+	c_context *C.cairo_t
 }
 
 type Panel struct {
@@ -74,7 +76,7 @@ func (panel *Panel) applyPanelType(){
 			break
 		}
 		case PanelType_Drawable:{
-			panel.drawComponent = &panelDrawComponent{ nil }
+			panel.drawComponent = &panelDrawComponent{ nil, nil }
 	
 			visual_is_found := false
 			var visual_type *C.xcb_visualtype_t
@@ -93,13 +95,8 @@ func (panel *Panel) applyPanelType(){
 			}
 		
 			if visual_type != nil {
-				cairo_surface := C.cairo_xcb_surface_create(sc.connection, panel.xwindow, visual_type, C.int(xywh.W), C.int(xywh.H))
-				cairo_context := C.cairo_create(cairo_surface)
-				panel.drawComponent.surface = cairo.NewSurfaceFromC(
-					cairo.Cairo_surface(unsafe.Pointer(cairo_surface)),
-					cairo.Cairo_context(unsafe.Pointer(cairo_context)),
-				)
-		
+				panel.drawComponent.c_surface = C.cairo_xcb_surface_create(sc.connection, panel.xwindow, visual_type, C.int(xywh.W), C.int(xywh.H))
+				panel.drawComponent.c_context = C.cairo_create(panel.drawComponent.c_surface)
 			}
 		}
 		default:break
@@ -143,7 +140,8 @@ func (panel *Panel) internalDestroy(){
 	sc := panel.screen
 	C.xcb_destroy_window(sc.connection, panel.xwindow)
 	if panel.panelType == PanelType_Drawable {
-		panel.drawComponent.surface.Destroy()
+		C.cairo_destroy(panel.drawComponent.c_context)
+		C.cairo_surface_destroy(panel.drawComponent.c_surface)
 	}
 }
 
@@ -160,7 +158,10 @@ func (panel *Panel) Destroy(){
 }
 
 func (panel *Panel) GetCairoSurface() *cairo.Surface {
-	return panel.drawComponent.surface
+	return cairo.NewSurfaceFromC(
+		cairo.Cairo_surface(unsafe.Pointer(panel.drawComponent.c_surface)),
+		cairo.Cairo_context(unsafe.Pointer(panel.drawComponent.c_context)),
+	)
 }
 
 func (panel *Panel) GetXYWH() XYWH{
@@ -182,5 +183,9 @@ func (panel *Panel) ApplyXYWH(xywh XYWH){
 	values := [4]C.uint32_t{ C.uint(xywh.X), C.uint(xywh.Y), C.uint(xywh.W), C.uint(xywh.H) }
 	C.xcb_configure_window (sc.connection, panel.xwindow,
 		C.XCB_CONFIG_WINDOW_X | C.XCB_CONFIG_WINDOW_Y | C.XCB_CONFIG_WINDOW_WIDTH | C.XCB_CONFIG_WINDOW_HEIGHT, unsafe.Pointer(&values[0]))
+
+	if panel.panelType == PanelType_Drawable && panel.drawComponent != nil && panel.drawComponent.c_surface != nil{
+		C.cairo_xcb_surface_set_size(panel.drawComponent.c_surface, C.int(xywh.W), C.int(xywh.H) )
+	}
 }
 
