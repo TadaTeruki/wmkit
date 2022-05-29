@@ -6,11 +6,6 @@ package wmkit
 */
 import "C"
 
-import (
-	//"log"
-	//"unsafe"
-)
-
 type EventType int
 
 const (
@@ -22,6 +17,11 @@ const (
 	ButtonReleaseNotify 	EventType =  4
 	ButtonMotionNotify 		EventType =  5
 	PointerMotionNotify 	EventType =  6
+	MapRequest 				EventType = -7
+	MapNotify 				EventType =  7
+	ConfigureRequest		EventType = -8
+	ConfigureNotify			EventType =  8
+	CreateNotify			EventType =  9
 )
 
 type Event struct {
@@ -31,6 +31,7 @@ type Event struct {
 	screen					*Screen
 	buttonProperty			*EventButtonProperty
 	motionProperty			*EventMotionProperty
+	configureProperty		*EventConfigureProperty
 }
 
 type EventButtonProperty struct {
@@ -46,6 +47,13 @@ type EventMotionProperty struct {
 	EventY	int
 	RootX	int
 	RootY	int
+}
+
+type EventConfigureProperty struct {
+	X int
+	Y int
+	W uint
+	H uint
 }
 
 type eventQueue struct {

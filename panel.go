@@ -150,17 +150,6 @@ func (sc *Screen) NewPanel(panelType PanelType, xywh XYWH, allowedEventType []Ev
 
 	return panel
 }
-/*
-func (panel *Panel) changePanelType(panelType PanelType){
-
-	if panel.panelType == panelType {
-		return
-	}
-
-	panel.panelType = panelType
-	panel.applyPanelType()	
-}
-*/
 
 func (panel *Panel) Map(){
 	sc := panel.screen

@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"os"
+	"unsafe"
 )
 
 type Screen struct {
@@ -29,6 +30,11 @@ func (sc *Screen) Connect() {
 	sc.xscreen		= C.xcb_setup_roots_iterator(C.xcb_get_setup(sc.connection)).data
 	sc.eventQueue 	= nil
 	sc.noevent		= false
+	
+	values := [1]C.uint32_t{ C.XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | C.XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY }
+	C.xcb_change_window_attributes(
+		sc.connection, sc.xscreen.root, C.XCB_CW_EVENT_MASK, unsafe.Pointer(&values[0]));
+	
 }
 
 func (sc *Screen) Disconnect() {

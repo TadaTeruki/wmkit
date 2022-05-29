@@ -5,10 +5,10 @@ import (
 	"os"
 )
 
-func (sc *Screen) OpenLogAccess() {
+func (sc *Screen) OpenLogAccess(filename string) {
 	
 	var err error
-	sc.logFile, err = os.OpenFile("./wmkit_log.txt", os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_APPEND, 0660)
+	sc.logFile, err = os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_APPEND, 0660)
 	if err != nil {
 		log.Fatalf("wmkit error: %v", err)
 	}
