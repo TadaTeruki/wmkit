@@ -67,6 +67,7 @@ func (sc *Screen) CatchRequest(event *Event) {
 			C.xcb_configure_window(sc.connection, event.targetXwindow,
 				C.XCB_CONFIG_WINDOW_X | C.XCB_CONFIG_WINDOW_Y | C.XCB_CONFIG_WINDOW_WIDTH | C.XCB_CONFIG_WINDOW_HEIGHT,
 				unsafe.Pointer(&values[0]))
+			sc.Flush()
 		}
 		default: {
 			
