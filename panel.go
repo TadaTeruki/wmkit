@@ -22,6 +22,7 @@ const(
 	PanelType_None	 		PanelType = 0
 	PanelType_Plain 		PanelType = 1
 	PanelType_Drawable		PanelType = 2
+	PanelType_App			PanelType = 3
 )
 
 type panelDrawComponent struct {
@@ -34,7 +35,9 @@ type Panel struct {
 	xwindow  		C.xcb_window_t
 	drawComponent 	*panelDrawComponent
 	screen			*Screen
+	content			interface{}
 }
+
 
 func (sc *Screen) initialPanel() Panel {
 	var panel Panel
@@ -44,6 +47,7 @@ func (sc *Screen) initialPanel() Panel {
 	panel.screen				= sc
 	return panel
 }
+
 
 func (sc *Screen) initPanelWithXWindow(panel *Panel, xwindow *C.xcb_window_t, xywh *XYWH, allowedEventType []EventType, overrideRedirect bool) {
 
@@ -85,28 +89,33 @@ func (sc *Screen) initPanelWithXWindow(panel *Panel, xwindow *C.xcb_window_t, xy
 			sc.xscreen.root_visual,
 			C.XCB_CW_OVERRIDE_REDIRECT | C.XCB_CW_EVENT_MASK ,
 			unsafe.Pointer(&values[0]))
-	} else {
+	}/* else {
 		C.xcb_change_window_attributes(
 			sc.connection, panel.xwindow, 
 			C.XCB_CW_OVERRIDE_REDIRECT | C.XCB_CW_EVENT_MASK,
 			unsafe.Pointer(&values[0]));
 	}
+	*/
 
 }
 
-func (panel *Panel) applyPanelType(){
+func (panel *Panel) GetPanelType() PanelType{
+	return panel.panelType
+}
+
+func (panel *Panel) applyPanelType(panelType PanelType){
 
 	sc := panel.screen
 
-	xywh := panel.GetXYWH()
-
 	panel.drawComponent	= nil
+	panel.panelType = panelType
 
 	switch panel.panelType {
 
 		case PanelType_Plain:{
 		}
 		case PanelType_Drawable:{
+			xywh := panel.GetXYWH()
 			panel.drawComponent = &panelDrawComponent{ nil, nil }
 	
 			visual_is_found := false
@@ -130,6 +139,8 @@ func (panel *Panel) applyPanelType(){
 				panel.drawComponent.c_context = C.cairo_create(panel.drawComponent.c_surface)
 			}
 		}
+		case PanelType_App:{
+		}
 		default:break
 	}
 }
@@ -139,15 +150,24 @@ func (sc *Screen) NewPanel(panelType PanelType, xywh XYWH, allowedEventType []Ev
 	sc.panels = append(sc.panels, sc.initialPanel())
 	panel := &sc.panels[len(sc.panels)-1]
 
-	panel.panelType 			= panelType
-	panel.xwindow 				= 0
-
-	if panel.panelType == PanelType_None { return panel }
+	if panelType == PanelType_None { return panel }
 
 	sc.initPanelWithXWindow(panel, nil, &xywh, allowedEventType, overrideRedirect)
 
-	panel.applyPanelType()
+	panel.applyPanelType(panelType)
 
+	return panel
+}
+
+func (sc *Screen) newAppPanel(xwindow C.xcb_window_t) *Panel{
+	
+	sc.panels = append(sc.panels, sc.initialPanel())
+	panel := &sc.panels[len(sc.panels)-1]
+
+	panel.xwindow = xwindow
+
+	panel.applyPanelType(PanelType_App)
+	
 	return panel
 }
 
@@ -155,6 +175,29 @@ func (panel *Panel) Map(){
 	sc := panel.screen
 	C.xcb_map_window(sc.connection, panel.xwindow)
 }
+
+func (panel *Panel) Focus(){
+	sc := panel.screen
+	C.xcb_set_input_focus(sc.connection, C.XCB_INPUT_FOCUS_POINTER_ROOT, panel.xwindow, C.XCB_CURRENT_TIME)
+}
+
+func (panel *Panel) Raise(){
+	sc := panel.screen
+	values := [1]C.uint32_t{ C.XCB_STACK_MODE_ABOVE }
+	C.xcb_configure_window(sc.connection, panel.xwindow, C.XCB_CONFIG_WINDOW_STACK_MODE, unsafe.Pointer(&values[0]))
+}
+
+func (panel *Panel) Reparent(parent *Panel, xy XY){
+	sc := panel.screen
+	var parentWindow C.xcb_window_t
+	if parent != nil {
+		parentWindow = parent.xwindow
+	} else {
+		return
+	}
+	C.xcb_reparent_window(sc.connection, panel.xwindow, parentWindow, C.int16_t(xy.X), C.int16_t(xy.Y))
+}
+
 
 func (panel *Panel) Unmap(){
 	sc := panel.screen
@@ -217,4 +260,13 @@ func (panel *Panel) ApplyXYWH(xywh XYWH){
 		C.cairo_xcb_surface_set_size(panel.drawComponent.c_surface, C.int(xywh.W), C.int(xywh.H) )
 	}
 }
+
+func (panel *Panel) GetContent() interface{} {
+	return panel.content
+}
+
+func (panel *Panel) SetContent(content interface{}) {
+	panel.content = content
+}
+
 

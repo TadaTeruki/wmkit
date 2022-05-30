@@ -22,11 +22,14 @@ const (
 	ConfigureRequest		EventType = -8
 	ConfigureNotify			EventType =  8
 	CreateNotify			EventType =  9
+	UnmapNotify 			EventType =  10
+	DestroyNotify			EventType =  11
 )
 
 type Event struct {
 	eventType 				EventType
 	targetXwindow			C.xcb_window_t
+	targetPanel				*Panel
 	requestIsAvailable 		bool
 	screen					*Screen
 	buttonProperty			*EventButtonProperty
@@ -66,13 +69,17 @@ func (event *Event) GetType() EventType {
 }
 
 func (event *Event) GetPanel() *Panel {
-	for _, panel := range event.screen.panels {
-		if panel.xwindow == event.targetXwindow {
+	return event.targetPanel
+}
+
+func (sc *Screen) getPanelFromXWindow(xwindow C.xcb_window_t) *Panel {
+	for _, panel := range sc.panels {
+		if panel.xwindow == xwindow {
 			return &panel
 		}
 	}
 	return nil
-}
+} 
 
 func (event *Event) GetButtonProperty() *EventButtonProperty {
 	return event.buttonProperty
